@@ -11,6 +11,8 @@ import {
   Key,
   FolderGit2,
   Lock,
+  UploadCloud,
+  Rocket,
 } from 'lucide-react';
 import { Website } from '../types';
 
@@ -25,7 +27,7 @@ export const ConnectSiteModal: React.FC<ConnectSiteModalProps> = ({
   onClose,
   onRepoConnected,
 }) => {
-  const [activeTab, setActiveTab] = useState<'git' | 'script' | 'dns' | 'env'>('git');
+  const [activeTab, setActiveTab] = useState<'git' | 'script' | 'dns' | 'env' | 'deploy'>('git');
   const [selectedRepo, setSelectedRepo] = useState<string>('singhsaurabhsohan/squargraph-site');
   const [githubToken, setGithubToken] = useState<string>('');
   const [savingToken, setSavingToken] = useState(false);
@@ -33,6 +35,13 @@ export const ConnectSiteModal: React.FC<ConnectSiteModalProps> = ({
     success: boolean;
     message: string;
     repoMeta?: any;
+  } | null>(null);
+
+  // Deploy Dashboard state
+  const [pushingDashboard, setPushingDashboard] = useState(false);
+  const [pushDashboardStatus, setPushDashboardStatus] = useState<{
+    success: boolean;
+    message: string;
   } | null>(null);
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -141,6 +150,45 @@ export const ConnectSiteModal: React.FC<ConnectSiteModalProps> = ({
       });
     } finally {
       setSavingToken(false);
+    }
+  };
+
+  const handlePushDashboard = async () => {
+    if (!githubToken.trim()) {
+      setPushDashboardStatus({
+        success: false,
+        message: 'Please paste your GitHub Personal Access Token (starts with ghp_...) above first.',
+      });
+      return;
+    }
+
+    setPushingDashboard(true);
+    setPushDashboardStatus(null);
+
+    try {
+      const res = await fetch('/api/bridge/push-dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          repo: 'singhsaurabhsohan/squargraph-dashboard',
+          token: githubToken.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to push to GitHub');
+      }
+      setPushDashboardStatus({
+        success: true,
+        message: data.message,
+      });
+    } catch (err: any) {
+      setPushDashboardStatus({
+        success: false,
+        message: err.message || 'Push failed. Please verify your token has "repo" permissions.',
+      });
+    } finally {
+      setPushingDashboard(false);
     }
   };
 
@@ -279,6 +327,17 @@ TTL:     300`;
           >
             <Key size={13} />
             4. Production .env
+          </button>
+          <button
+            className={`px-4 py-2 text-xs font-semibold border-b-2 flex items-center gap-1.5 transition-colors ${
+              activeTab === 'deploy'
+                ? 'border-[#10120f] text-[#10120f]'
+                : 'border-transparent text-gray-500 hover:text-gray-900'
+            }`}
+            onClick={() => setActiveTab('deploy')}
+          >
+            <Rocket size={13} className="text-[#84cc16]" />
+            5. Push to squargraph-dashboard
           </button>
         </div>
 
@@ -469,6 +528,99 @@ TTL:     300`;
             <pre className="p-3 bg-[#10120f] text-[#eeeee8] rounded font-mono text-xs overflow-x-auto leading-relaxed border border-gray-800 max-h-52">
               {envBlockCode}
             </pre>
+          </div>
+        )}
+
+        {/* Tab 5: Push Code to squargraph-dashboard repository */}
+        {activeTab === 'deploy' && (
+          <div className="space-y-4 text-xs text-gray-700">
+            <div className="p-3 bg-[#10120f] text-[#eeeee8] rounded space-y-2 border border-gray-800">
+              <div className="flex items-center gap-2">
+                <Rocket size={16} className="text-[#e8ff75]" />
+                <b className="text-white text-sm">Push Dashboard to GitHub</b>
+              </div>
+              <p className="text-gray-300 text-xs leading-relaxed">
+                Push this entire Site Control OS codebase directly to your newly created repository:
+              </p>
+              <div className="p-2 bg-black/50 rounded border border-gray-700 flex items-center justify-between font-mono text-xs text-[#e8ff75]">
+                <span>https://github.com/singhsaurabhsohan/squargraph-dashboard</span>
+                <a
+                  href="https://github.com/singhsaurabhsohan/squargraph-dashboard"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-gray-400 hover:text-white flex items-center gap-1"
+                >
+                  <ExternalLink size={12} />
+                </a>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="font-bold text-[#10120f] block">
+                Your GitHub Personal Access Token (starts with <code>ghp_...</code>):
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  placeholder="Paste your ghp_... token here"
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
+                  className="w-full p-2.5 pr-8 border border-gray-300 rounded font-mono text-xs focus:ring-1 focus:ring-black focus:border-black outline-hidden"
+                />
+                <Lock size={13} className="absolute right-2.5 top-3 text-gray-400" />
+              </div>
+              <p className="text-[11px] text-gray-500">
+                Needs <b>repo</b> scope to push commits and branches to singhsaurabhsohan/squargraph-dashboard.
+              </p>
+            </div>
+
+            {pushDashboardStatus && (
+              <div
+                className={`p-3 rounded text-xs flex items-center gap-2 border ${
+                  pushDashboardStatus.success
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-red-50 border-red-200 text-red-900'
+                }`}
+              >
+                {pushDashboardStatus.success ? (
+                  <Check size={14} className="text-emerald-600 shrink-0" />
+                ) : (
+                  <RefreshCw size={14} className="text-red-600 shrink-0" />
+                )}
+                <div>
+                  <b>{pushDashboardStatus.message}</b>
+                  {pushDashboardStatus.success && (
+                    <div className="mt-2 pt-2 border-t border-emerald-200 text-[11px] space-y-1">
+                      <p><b>Next Step to get os.squargraph.com:</b></p>
+                      <ol className="list-decimal pl-4 space-y-0.5 text-gray-700">
+                        <li>Go to Cloudflare Pages → <b>Create application</b> → <b>Pages</b> → <b>Connect to Git</b>.</li>
+                        <li>Select <b>singhsaurabhsohan/squargraph-dashboard</b>. Build command: <code>npm run build</code>, output dir: <code>dist</code>.</li>
+                        <li>In the deployed project, click <b>Custom domains</b> → <b>Set up a custom domain</b> → enter <b>os.squargraph.com</b>!</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2 flex items-center justify-between">
+              <span className="text-[11px] text-gray-500">
+                Syncs all 29 app files, components, and build scripts.
+              </span>
+              <button
+                type="button"
+                onClick={handlePushDashboard}
+                disabled={pushingDashboard}
+                className="py-2.5 px-4 bg-[#10120f] hover:bg-black text-[#e8ff75] text-xs font-semibold rounded shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+              >
+                {pushingDashboard ? (
+                  <RefreshCw size={14} className="animate-spin text-[#e8ff75]" />
+                ) : (
+                  <UploadCloud size={14} />
+                )}
+                {pushingDashboard ? 'Pushing to GitHub Repo…' : 'Push Code to squargraph-dashboard ↗'}
+              </button>
+            </div>
           </div>
         )}
 

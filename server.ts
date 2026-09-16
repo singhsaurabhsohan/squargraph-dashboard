@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
+import { execSync } from 'child_process';
 import { createServer as createViteServer } from 'vite';
 import * as cheerio from 'cheerio';
 import {
@@ -1376,6 +1377,67 @@ app.post('/api/bridge/set-github', async (req: Request, res: Response) => {
 // 10. Audit Log
 app.get('/api/audit', (req: Request, res: Response) => {
   res.json(state.auditEvents);
+});
+
+// 11. Push SQUARGRAPH Site Control codebase to GitHub Repository
+app.post('/api/bridge/push-dashboard', async (req: Request, res: Response) => {
+  const { token, repo } = req.body;
+  const authToken = (token || process.env.GITHUB_TOKEN || '').trim();
+  const targetRepo = (repo || 'singhsaurabhsohan/squargraph-dashboard').trim();
+
+  if (!authToken) {
+    return res.status(400).json({
+      success: false,
+      error: 'GitHub Personal Access Token (PAT) is required to push to this repository.',
+    });
+  }
+
+  try {
+    // Ensure all changes in workspace are committed
+    try {
+      execSync('git add -A && git commit -m "feat: SQUARGRAPH Site Control Dashboard sync"', {
+        stdio: 'pipe',
+      });
+    } catch {
+      // Nothing new to commit, which is fine
+    }
+
+    // Configure remote with authenticated URL
+    const remoteUrl = `https://x-access-token:${authToken}@github.com/${targetRepo}.git`;
+    try {
+      execSync(`git remote remove dashboard 2>/dev/null || true`, { stdio: 'pipe' });
+      execSync(`git remote add dashboard "${remoteUrl}"`, { stdio: 'pipe' });
+      execSync(`git push -u dashboard main --force`, { stdio: 'pipe' });
+    } finally {
+      // Remove remote to ensure token is never leaked on disk
+      try {
+        execSync(`git remote remove dashboard 2>/dev/null || true`, { stdio: 'pipe' });
+      } catch {}
+    }
+
+    state.auditEvents.unshift({
+      id: `aud-${Date.now()}`,
+      eventType: 'dashboard_deployed',
+      title: `Dashboard Codebase Pushed: ${targetRepo}`,
+      description: `Pushed full SQUARGRAPH Site Control Dashboard codebase to GitHub repository ${targetRepo}. Ready for Cloudflare Pages or Vercel standalone deployment.`,
+      websiteName: 'SQUARGRAPH Dashboard',
+      actor: 'Saurabh Singh (Owner)',
+      timestamp: 'Just now',
+      status: 'Live',
+      rollbackAvailable: false,
+    });
+
+    res.json({
+      success: true,
+      repo: targetRepo,
+      message: `Codebase successfully pushed to https://github.com/${targetRepo}! Cloudflare Pages or Vercel can now deploy it permanently.`,
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Failed to push codebase to GitHub repository',
+    });
+  }
 });
 
 // ----------------------------------------------------
