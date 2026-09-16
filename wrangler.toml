@@ -1,8 +1,7 @@
 name = "squargraph-dashboard"
-main = "src/main.tsx"
 compatibility_date = "2024-09-23"
 
 # Cloudflare Static Assets (Vite SPA)
 [assets]
 directory = "./dist"
-binding = "ASSETS"
+not_found_handling = "single-page-application"
