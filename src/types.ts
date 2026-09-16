@@ -162,3 +162,57 @@ export interface DeploymentStatus {
   lastDeployedRevision: string;
   previewUrl: string;
 }
+
+// User Authentication & Tenancy
+export type AuthProviderType = 'squargraph' | 'google' | 'apple' | 'email';
+export type UserTier = 'starter' | 'pro' | 'enterprise' | 'custom';
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  provider: AuthProviderType;
+  organization: string;
+  role: Role;
+  plan: UserTier;
+  seats: number;
+  apiKeysCount: number;
+  isInternalSquargraph: boolean;
+  twoFactorEnabled: boolean;
+  createdAt: string;
+}
+
+export interface SubscriptionPlan {
+  id: UserTier;
+  name: string;
+  badge?: string;
+  monthlyPriceUSD: number;
+  annualPriceUSD: number;
+  features: string[];
+  maxSites: number;
+  maxDeploymentsPerMonth: number;
+  includedSeats: number;
+  prioritySupport: boolean;
+}
+
+export interface MediaAsset {
+  id: string;
+  name: string;
+  url: string;
+  type: 'image' | 'video' | 'document' | 'code';
+  sizeFormatted: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  dimensions?: string;
+  duration?: string;
+  mimeType: string;
+}
+
+export interface CodeFile {
+  path: string;
+  name: string;
+  language: 'typescript' | 'javascript' | 'html' | 'css' | 'json' | 'toml' | 'markdown';
+  content: string;
+  isModified?: boolean;
+}

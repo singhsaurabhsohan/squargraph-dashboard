@@ -1,13 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #10120f;
-  --cream: #eeeee8;
-  --cream-light: #f8f8f4;
-  --line: #d9d9d1;
-  --line-strong: #bbbdb5;
+  --ink: #0d0f0c;
+  --dark-surface: #131611;
+  --dark-card: #181b15;
+  --dark-border: #262c20;
+  --cream: #f4f4ee;
+  --cream-light: #fbfbf8;
+  --line: #deded6;
+  --line-strong: #c2c3ba;
   --acid: #e8ff75;
   --acid-hover: #dcfa5a;
+  --acid-subtle: #232a1b;
   --muted: #73756e;
   --accent-green: #4d7714;
 }

@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Section,
-  Website,
-  Workspace,
-  ProviderConnection,
-  AuditEvent,
-  DraftChange,
-  WebsiteType,
-} from './types';
+import { Section, Website, Workspace, ProviderConnection, AuditEvent, DraftChange, WebsiteType, UserAccount } from './types';
 import { NavigationRail } from './components/NavigationRail';
 import { WorkspaceView } from './components/WorkspaceView';
 import { WebsitesView } from './components/WebsitesView';
@@ -16,7 +8,11 @@ import { ActivityView } from './components/ActivityView';
 import { PublishModal } from './components/PublishModal';
 import { WorkspaceModal } from './components/WorkspaceModal';
 import { ConnectSiteModal } from './components/ConnectSiteModal';
-import { ShieldCheck, ShieldAlert, ArrowUpRight, GitBranch } from 'lucide-react';
+import { CodeEditorView } from './components/CodeEditorView';
+import { MediaAssetsView } from './components/MediaAssetsView';
+import { AccountAndAuthModal } from './components/AccountAndAuthModal';
+import { AuthScreen } from './components/AuthScreen';
+import { ShieldCheck, ShieldAlert, ArrowUpRight, GitBranch, Code, Film, User, LogOut } from 'lucide-react';
 
 const initialSections: Section[] = [
   {
@@ -115,11 +111,29 @@ const initialSections: Section[] = [
 ];
 
 export default function App() {
-  const [view, setView] = useState<'workspace' | 'sites' | 'integrations' | 'activity'>('workspace');
+  const [view, setView] = useState<'workspace' | 'code' | 'media' | 'sites' | 'integrations' | 'activity'>('workspace');
   const [sections, setSections] = useState<Section[]>(initialSections);
   const [selectedId, setSelectedId] = useState<string>(initialSections[0].id);
   const [scanLoading, setScanLoading] = useState<boolean>(false);
   const [notice, setNotice] = useState<string>('');
+
+  // User Account & Subscription State
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>({
+    id: 'usr-saurabh-sqg',
+    name: 'Saurabh Singh',
+    email: 'saurabh@squargraph.com',
+    avatar: 'SS',
+    provider: 'squargraph',
+    organization: 'SQUARGRAPH Studio',
+    role: 'owner',
+    plan: 'enterprise',
+    seats: 25,
+    apiKeysCount: 3,
+    isInternalSquargraph: true,
+    twoFactorEnabled: true,
+    createdAt: '2026-09-16',
+  });
+  const [showAccountModal, setShowAccountModal] = useState<boolean>(false);
 
   // Multi-tenancy & Workspace
   const [workspaces, setWorkspaces] = useState<Workspace[]>([
@@ -596,6 +610,10 @@ export default function App() {
   const isRepoConnected =
     currentWebsite.state === 'Connected' && !!currentWebsite.connections.sourceRepo;
 
+  if (!currentUser) {
+    return <AuthScreen onLoginSuccess={(user) => setCurrentUser(user)} />;
+  }
+
   return (
     <main className="control-room" id="squargraph-site-control-root">
       {/* 1. Left Nav Rail */}
@@ -604,6 +622,8 @@ export default function App() {
         onSelectView={setView}
         activeWorkspace={activeWorkspace}
         onOpenWorkspaceModal={() => setShowWorkspaceModal(true)}
+        currentUser={currentUser}
+        onOpenAccountModal={() => setShowAccountModal(true)}
       />
 
       {/* 2. Main Shell */}
@@ -614,6 +634,10 @@ export default function App() {
             <h1>
               {view === 'workspace'
                 ? 'Website control room'
+                : view === 'code'
+                ? 'Code & Config IDE'
+                : view === 'media'
+                ? 'Digital Media & CDN Assets'
                 : view === 'sites'
                 ? 'Your websites'
                 : view === 'integrations'
@@ -648,6 +672,17 @@ export default function App() {
               Connect squargraph.com ↗
             </button>
 
+            {/* Account & Subscription Quick Launcher */}
+            <button
+              className="py-1.5 px-3 bg-[#1e2319] hover:bg-[#282f22] text-[#e8ff75] border border-[#354029] text-xs font-semibold rounded flex items-center gap-1.5 transition-colors"
+              onClick={() => setShowAccountModal(true)}
+              id="topbar-account-btn"
+              title="Subscriptions, Licenses & SSO"
+            >
+              <User size={13} />
+              {currentUser.plan.toUpperCase()} Account
+            </button>
+
             <button className="publish" onClick={handlePublishClick} id="topbar-publish-btn">
               Publish changes <span>↗</span>
             </button>
@@ -672,6 +707,26 @@ export default function App() {
             scanNotice={notice}
             onOpenPublishModal={handlePublishClick}
             onSaveDraft={handleSaveDraft}
+          />
+        )}
+
+        {view === 'code' && (
+          <CodeEditorView
+            website={currentWebsite}
+            onSaveFile={(file, newContent) => {
+              setNotice(`Committed changes to ${file.path} on branch main.`);
+            }}
+            onDeployConfig={() => {
+              setNotice('Edge worker runtime restarted with latest configuration.');
+            }}
+          />
+        )}
+
+        {view === 'media' && (
+          <MediaAssetsView
+            onInsertAssetToSection={(url) => {
+              setNotice(`Asset link copied: ${url}`);
+            }}
           />
         )}
 
@@ -749,6 +804,19 @@ export default function App() {
               )
             );
             setNotice(`Connected to GitHub repository ${newRepo}`);
+          }}
+        />
+      )}
+
+      {/* 5c. User Account & Subscription Modal */}
+      {showAccountModal && (
+        <AccountAndAuthModal
+          currentUser={currentUser}
+          onUpdateUser={(updated) => setCurrentUser(updated)}
+          onClose={() => setShowAccountModal(false)}
+          onLogout={() => {
+            setCurrentUser(null);
+            setShowAccountModal(false);
           }}
         />
       )}
