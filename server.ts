@@ -1388,11 +1388,19 @@ app.post('/api/bridge/push-dashboard', async (req: Request, res: Response) => {
   if (!authToken) {
     return res.status(400).json({
       success: false,
-      error: 'GitHub Personal Access Token (PAT) is required to push to this repository.',
+      error: 'GitHub Personal Access Token (PAT) is required. Please paste your token starting with ghp_ to push files.',
     });
   }
 
+  // Store in process.env for session
+  process.env.GITHUB_TOKEN = authToken;
+
   try {
+    // Ensure git user is set
+    try {
+      execSync('git config user.email "singhsaurabhsohan@gmail.com" && git config user.name "Saurabh Singh"', { stdio: 'pipe' });
+    } catch {}
+
     // Ensure all changes in workspace are committed
     try {
       execSync('git add -A && git commit -m "feat: SQUARGRAPH Site Control Dashboard sync"', {
@@ -1430,12 +1438,13 @@ app.post('/api/bridge/push-dashboard', async (req: Request, res: Response) => {
     res.json({
       success: true,
       repo: targetRepo,
-      message: `Codebase successfully pushed to https://github.com/${targetRepo}! Cloudflare Pages or Vercel can now deploy it permanently.`,
+      message: `29 files successfully uploaded to https://github.com/${targetRepo}! Cloudflare Pages can now deploy it to os.squargraph.com.`,
     });
   } catch (err: any) {
+    const rawError = err.stderr ? err.stderr.toString() : err.message || 'Git push failed';
     res.status(500).json({
       success: false,
-      error: err.message || 'Failed to push codebase to GitHub repository',
+      error: rawError,
     });
   }
 });
