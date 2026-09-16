@@ -1401,8 +1401,10 @@ app.post('/api/bridge/push-dashboard', async (req: Request, res: Response) => {
       execSync('git config user.email "singhsaurabhsohan@gmail.com" && git config user.name "Saurabh Singh"', { stdio: 'pipe' });
     } catch {}
 
-    // Ensure all changes in workspace are committed
+    // Ensure all changes in workspace are committed (strip bun.lock so Cloudflare builds with Node/npm)
     try {
+      execSync('rm -f bun.lock bun.lockb 2>/dev/null || true', { stdio: 'pipe' });
+      execSync('git rm -f bun.lock bun.lockb 2>/dev/null || true', { stdio: 'pipe' });
       execSync('git add -A && git commit -m "feat: SQUARGRAPH Site Control Dashboard sync"', {
         stdio: 'pipe',
       });
