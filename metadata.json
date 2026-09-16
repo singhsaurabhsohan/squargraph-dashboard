@@ -1,0 +1,6 @@
+{
+  "name": "SQUARGRAPH Site Control",
+  "description": "Professional multi-tenant Website Control platform for scanning editable content, managing drafts, publishing GitHub pull requests with deployment previews, and rolling back safely.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
