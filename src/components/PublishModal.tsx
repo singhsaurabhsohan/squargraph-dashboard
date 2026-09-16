@@ -29,6 +29,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
 
   // Codebase Push State
   const [githubToken, setGithubToken] = useState('');
+  const [targetRepo, setTargetRepo] = useState('singhsaurabhsohan/squargraph-dashboard');
   const [pushingCodebase, setPushingCodebase] = useState(false);
   const [codebasePushResult, setCodebasePushResult] = useState<{ success: boolean; message?: string; error?: string } | null>(null);
 
@@ -60,6 +61,8 @@ export const PublishModal: React.FC<PublishModalProps> = ({
       return;
     }
 
+    const cleanRepo = targetRepo.trim() || 'singhsaurabhsohan/squargraph-dashboard';
+
     setPushingCodebase(true);
     setCodebasePushResult(null);
     try {
@@ -68,14 +71,22 @@ export const PublishModal: React.FC<PublishModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: githubToken.trim(),
-          repo: website.connections.sourceRepo || 'singhsaurabhsohan/squargraph-dashboard',
+          repo: cleanRepo,
         }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
         setCodebasePushResult({ success: true, message: data.message });
       } else {
-        setCodebasePushResult({ success: false, error: data.error || 'Failed to upload files to GitHub repository.' });
+        const errorMsg = data.error || 'Failed to upload files to GitHub repository.';
+        const isBranchProtected = errorMsg.includes('GH013') || errorMsg.includes('repository rule violations') || errorMsg.includes('Cannot force-push');
+        
+        setCodebasePushResult({
+          success: false,
+          error: isBranchProtected
+            ? `Protected branch error on "${cleanRepo}". The repository "squargraph-site" is your live production site with protected main branch. Please select "singhsaurabhsohan/squargraph-dashboard" above to upload the Site Control codebase for control.squargraph.com.`
+            : errorMsg,
+        });
       }
     } catch (err: any) {
       setCodebasePushResult({ success: false, error: err.message || 'Network error pushing to GitHub' });
@@ -148,7 +159,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
               }`}
             >
               <Rocket size={13} className={activeTab === 'upload' ? 'text-black' : ''} />
-              1. Upload All 29 Files to Repo (os.squargraph.com)
+              1. Upload All 29 Files to Repo (control.squargraph.com)
             </button>
             <button
               type="button"
@@ -179,21 +190,41 @@ export const PublishModal: React.FC<PublishModalProps> = ({
                 </span>
               </div>
               <p className="text-gray-300 text-xs leading-relaxed">
-                Your repository on GitHub currently has no files uploaded. To deploy your dashboard to <code className="text-[#e8ff75]">os.squargraph.com</code>, push the full project codebase below:
+                Upload this dashboard project codebase to GitHub so Cloudflare Pages can host it on your custom domain <code className="text-[#e8ff75] font-bold">control.squargraph.com</code>:
               </p>
-              <div className="p-2 bg-black/60 rounded border border-gray-700 flex items-center justify-between font-mono text-xs text-[#e8ff75]">
-                <span>https://github.com/{website.connections.sourceRepo || 'singhsaurabhsohan/squargraph-dashboard'}</span>
-                <a
-                  href={`https://github.com/${website.connections.sourceRepo || 'singhsaurabhsohan/squargraph-dashboard'}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-gray-400 hover:text-white flex items-center gap-1"
-                >
-                  <ExternalLink size={12} />
-                </a>
-              </div>
             </div>
 
+            {/* Target Repository Selector */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-[#10120f] block text-xs">
+                  Target GitHub Repository:
+                </label>
+                <span className="text-[11px] text-gray-500">Destination repository</span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={targetRepo}
+                  onChange={(e) => setTargetRepo(e.target.value)}
+                  className="w-full p-2.5 border border-gray-300 rounded font-mono text-xs focus:ring-1 focus:ring-black focus:border-black outline-hidden bg-white"
+                  placeholder="singhsaurabhsohan/squargraph-dashboard"
+                />
+                <button
+                  type="button"
+                  onClick={() => setTargetRepo('singhsaurabhsohan/squargraph-dashboard')}
+                  className="px-2.5 py-1 text-[11px] bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded text-gray-700 font-medium whitespace-nowrap cursor-pointer"
+                  title="Reset to recommended dashboard repository"
+                >
+                  Use squargraph-dashboard
+                </button>
+              </div>
+              <p className="text-[11px] text-amber-800 bg-amber-50 p-2 rounded border border-amber-200">
+                ⚠️ <b>Important:</b> Use <code>singhsaurabhsohan/squargraph-dashboard</code> for this Site Control dashboard. Do not use <code>squargraph-site</code> because it is your live website with protected branches that reject direct pushes.
+              </p>
+            </div>
+
+            {/* GitHub Token Field */}
             <div className="space-y-2">
               <label className="font-bold text-[#10120f] block text-xs">
                 Your GitHub Personal Access Token (starts with <code>ghp_...</code>):
@@ -209,7 +240,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
                 <Lock size={13} className="absolute right-2.5 top-3 text-gray-400" />
               </div>
               <p className="text-[11px] text-gray-500">
-                GitHub requires write authorization to upload files to your account. Needs <b>repo</b> scope.
+                Token must have the <b>repo</b> scope enabled to push code.
               </p>
             </div>
 
@@ -221,22 +252,23 @@ export const PublishModal: React.FC<PublishModalProps> = ({
                     : 'bg-red-50 border-red-200 text-red-900'
                 }`}
               >
-                <div className="flex items-center gap-2 font-semibold">
+                <div className="flex items-start gap-2 font-semibold">
                   {codebasePushResult.success ? (
-                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
                   ) : (
-                    <ShieldAlert size={16} className="text-red-600 shrink-0" />
+                    <ShieldAlert size={16} className="text-red-600 shrink-0 mt-0.5" />
                   )}
                   <span>{codebasePushResult.message || codebasePushResult.error}</span>
                 </div>
                 {codebasePushResult.success && (
-                  <div className="mt-2 pt-2 border-t border-emerald-200 text-[11px] space-y-1">
-                    <p className="font-bold text-black">Next Steps to launch os.squargraph.com:</p>
+                  <div className="mt-2.5 pt-2 border-t border-emerald-200 text-[11px] space-y-1.5">
+                    <p className="font-bold text-black text-xs">Next Steps to launch control.squargraph.com:</p>
                     <ol className="list-decimal pl-4 space-y-1 text-gray-800">
-                      <li>Go to <a href="https://dash.cloudflare.com" target="_blank" rel="noreferrer" className="underline font-bold">dash.cloudflare.com</a> → <b>Workers & Pages</b> → <b>Create application</b> → <b>Pages</b>.</li>
-                      <li>Select your repo: <b>singhsaurabhsohan/squargraph-dashboard</b>.</li>
-                      <li>Preset: <b>Vite</b>, Build command: <code>npm run build</code>, Output directory: <code>dist</code>. Click <b>Deploy</b>.</li>
-                      <li>In custom domains, add: <b className="text-black">os.squargraph.com</b>!</li>
+                      <li>Open <a href="https://dash.cloudflare.com" target="_blank" rel="noreferrer" className="underline font-bold text-black">dash.cloudflare.com</a> → <b>Compute (Workers & Pages)</b>.</li>
+                      <li>Click <b>Create application</b> → click the <b>Pages</b> tab → <b>Connect to Git</b>.</li>
+                      <li>Select your repository: <b>{targetRepo}</b>.</li>
+                      <li>Build settings: Preset: <b>Vite</b>, Build command: <code>npm run build</code>, Output directory: <code>dist</code>. Click <b>Deploy</b>.</li>
+                      <li>In custom domains, click <b>Set up a custom domain</b> → enter: <b className="text-black text-xs">control.squargraph.com</b>!</li>
                     </ol>
                   </div>
                 )}

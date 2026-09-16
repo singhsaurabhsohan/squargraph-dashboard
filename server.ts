@@ -141,19 +141,19 @@ const state: ServerState = {
       detectedStack: ['Vite', 'TypeScript', 'Cloudflare Worker', 'Tailwind CSS'],
     },
     {
-      id: 'site-squargraph-os',
-      name: 'SQUARGRAPH OS',
-      url: 'os.squargraph.com',
+      id: 'site-squargraph-control',
+      name: 'SQUARGRAPH Site Control',
+      url: 'control.squargraph.com',
       state: 'Connected',
       color: '#e8ff75',
       type: 'Full-Stack Web App',
       environment: 'production',
       connections: {
         sourceProviderId: 'github',
-        sourceRepo: 'singhsaurabhsohan/SQUARGRAPH-OS',
+        sourceRepo: 'singhsaurabhsohan/squargraph-dashboard',
         sourceBranch: 'main',
         deployProviderId: 'cloudflare',
-        deployProject: 'squargraph-os-edge',
+        deployProject: 'squargraph-control-edge',
       },
       lastScanAt: 'Just now',
       detectedStack: ['React', 'TypeScript', 'Node.js', 'Vite', 'Tailwind CSS'],
@@ -1438,7 +1438,7 @@ app.post('/api/bridge/push-dashboard', async (req: Request, res: Response) => {
     res.json({
       success: true,
       repo: targetRepo,
-      message: `29 files successfully uploaded to https://github.com/${targetRepo}! Cloudflare Pages can now deploy it to os.squargraph.com.`,
+      message: `29 files successfully uploaded to https://github.com/${targetRepo}! Cloudflare Pages can now deploy it to control.squargraph.com.`,
     });
   } catch (err: any) {
     const rawError = err.stderr ? err.stderr.toString() : err.message || 'Git push failed';

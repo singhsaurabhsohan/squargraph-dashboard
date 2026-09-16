@@ -591,11 +591,11 @@ TTL:     300`;
                   <b>{pushDashboardStatus.message}</b>
                   {pushDashboardStatus.success && (
                     <div className="mt-2 pt-2 border-t border-emerald-200 text-[11px] space-y-1">
-                      <p><b>Next Step to get os.squargraph.com:</b></p>
+                      <p><b>Next Step to get control.squargraph.com:</b></p>
                       <ol className="list-decimal pl-4 space-y-0.5 text-gray-700">
                         <li>Go to Cloudflare Pages → <b>Create application</b> → <b>Pages</b> → <b>Connect to Git</b>.</li>
                         <li>Select <b>singhsaurabhsohan/squargraph-dashboard</b>. Build command: <code>npm run build</code>, output dir: <code>dist</code>.</li>
-                        <li>In the deployed project, click <b>Custom domains</b> → <b>Set up a custom domain</b> → enter <b>os.squargraph.com</b>!</li>
+                        <li>In the deployed project, click <b>Custom domains</b> → <b>Set up a custom domain</b> → enter <b>control.squargraph.com</b>!</li>
                       </ol>
                     </div>
                   )}
