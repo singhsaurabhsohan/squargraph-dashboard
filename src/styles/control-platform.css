@@ -1,0 +1,96 @@
+/* SQUARGRAPH Control platform layer */
+:root {
+  --control-bg: #f6f7f2;
+  --control-surface: #ffffff;
+  --control-surface-2: #eef0e9;
+  --control-ink: #0b0d0a;
+  --control-muted: #70746b;
+  --control-border: #dfe2d8;
+  --control-acid: #e8ff75;
+  --control-acid-soft: #f1f8d7;
+  --control-shadow: 0 12px 40px rgba(13,15,12,.06);
+}
+
+.control-room {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(232,255,117,.12), transparent 28%),
+    var(--control-bg);
+}
+
+.shell { max-width: 1680px; }
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--control-bg) 92%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.topbar-actions { flex-wrap: wrap; }
+
+.integration-grid article,
+.sites-view article,
+.activity-view article {
+  background: var(--control-surface);
+  border-color: var(--control-border);
+  box-shadow: var(--control-shadow);
+  border-radius: 12px;
+}
+
+.integration-grid article { padding: 20px; }
+
+.integration-grid article header {
+  border-bottom: 1px solid var(--control-border);
+  padding-bottom: 12px;
+}
+
+.integration-grid article header > p {
+  color: var(--control-muted);
+  letter-spacing: .08em;
+}
+
+.conn-status {
+  background: var(--control-acid-soft) !important;
+  border-color: #d1df9b !important;
+  color: #36510e !important;
+}
+
+.scan-box,
+.edit-card { box-shadow: var(--control-shadow); }
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--control-acid);
+  outline-offset: 2px;
+}
+
+/* Provider chips */
+.provider-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #8b8e84;
+}
+
+.provider-status-dot.live { background: #70a51b; box-shadow: 0 0 0 3px rgba(112,165,27,.12); }
+.provider-status-dot.pending { background: #d59b25; }
+.provider-status-dot.error { background: #c83c36; }
+
+@media (max-width: 900px) {
+  .shell { width: 100%; padding-inline: 18px; }
+  .topbar { position: static; }
+}
+
+@media (max-width: 640px) {
+  .shell { padding-inline: 14px; }
+  .topbar-actions { width: 100%; }
+  .topbar-actions > * { flex: 1 1 auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}
