@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { AuthScreen } from './components/AuthScreen';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
+import './lib/control-data-bridge';
 import './index.css';
 import './styles/control-platform.css';
 
@@ -34,9 +35,7 @@ function AuthGate() {
     };
   }, []);
 
-  if (!isSupabaseConfigured || !supabase) {
-    return <AuthScreen onLoginSuccess={() => undefined} />;
-  }
+  if (!isSupabaseConfigured || !supabase) return <AuthScreen onLoginSuccess={() => undefined} />;
 
   if (!ready) {
     return (
@@ -49,10 +48,7 @@ function AuthGate() {
     );
   }
 
-  if (!authenticated) {
-    return <AuthScreen onLoginSuccess={() => setAuthenticated(true)} />;
-  }
-
+  if (!authenticated) return <AuthScreen onLoginSuccess={() => setAuthenticated(true)} />;
   return <App />;
 }
 
