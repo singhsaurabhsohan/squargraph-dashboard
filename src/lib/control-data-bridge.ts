@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
 const STORAGE_KEY = 'sqg-control-workspace-id';
+const CONTROL_SUPABASE_URL = 'https://htuswsvgobgpurnbmjkk.supabase.co';
 
 const integrationDefaults = [
   { name: 'Source & Delivery', category: 'Source & delivery', providers: ['GitHub', 'GitLab', 'Bitbucket', 'Cloudflare', 'Vercel', 'Netlify'], purpose: 'Read source, create commits, deploy previews and roll back safely.' },
@@ -100,6 +101,31 @@ async function seedIntegrations(workspaceId: string) {
   await supabase.from('control_integrations').insert(integrationDefaults.map((item) => ({ ...item, workspace_id: workspaceId, status: 'needs_auth', is_encrypted: false })));
 }
 
+function subscribeToWorkspaceRealtime(workspaceId: string) {
+  if (!supabase || (window as Window & { __sqgRealtime?: boolean }).__sqgRealtime) return;
+  const channel = supabase
+    .channel(`control-workspace-${workspaceId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'control_websites', filter: `workspace_id=eq.${workspaceId}` }, () => window.dispatchEvent(new CustomEvent('sqg-control-data-changed', { detail: { resource: 'websites' } })))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'control_integrations', filter: `workspace_id=eq.${workspaceId}` }, () => window.dispatchEvent(new CustomEvent('sqg-control-data-changed', { detail: { resource: 'integrations' } })))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'control_activity', filter: `workspace_id=eq.${workspaceId}` }, () => window.dispatchEvent(new CustomEvent('sqg-control-data-changed', { detail: { resource: 'activity' } })))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'control_jobs', filter: `workspace_id=eq.${workspaceId}` }, () => window.dispatchEvent(new CustomEvent('sqg-control-data-changed', { detail: { resource: 'jobs' } })))
+    .subscribe();
+  (window as Window & { __sqgRealtime?: boolean; __sqgRealtimeChannel?: unknown }).__sqgRealtime = true;
+  (window as Window & { __sqgRealtimeChannel?: unknown }).__sqgRealtimeChannel = channel;
+}
+
+async function scanWebsite(websiteId: string) {
+  const { data } = await supabase!.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return response({ error: 'Authentication required' }, 401);
+  const result = await fetch(`${CONTROL_SUPABASE_URL}/functions/v1/control-jobs`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'scan', websiteId }),
+  });
+  return result;
+}
+
 async function bridge(input: RequestInfo | URL, init?: RequestInit): Promise<Response | null> {
   if (!supabase) return null;
   const url = typeof input === 'string' ? input : input instanceof URL ? input.pathname : input.url;
@@ -109,6 +135,7 @@ async function bridge(input: RequestInfo | URL, init?: RequestInit): Promise<Res
   try {
     const ctx = await context();
     if (!ctx) return response({ error: 'Authentication required' }, 401);
+    subscribeToWorkspaceRealtime(ctx.workspace.id);
 
     if (url === '/api/workspaces' && method === 'GET') return workspaceResponse();
 
@@ -143,6 +170,12 @@ async function bridge(input: RequestInfo | URL, init?: RequestInit): Promise<Res
       }).select('*').single();
       if (error) throw error;
       return response({ id: data.id, name: data.name, url: data.url, state: data.state, color: data.color, type: data.type, environment: data.environment, connections: data.connections, lastScanAt: 'Never', detectedStack: [] }, 201);
+    }
+
+    if (url === '/api/websites/scan' && method === 'POST') {
+      const body = JSON.parse(String(init?.body || '{}'));
+      if (!body.websiteId) return response({ error: 'websiteId is required' }, 400);
+      return scanWebsite(String(body.websiteId));
     }
 
     if (url === '/api/audit' && method === 'GET') {
